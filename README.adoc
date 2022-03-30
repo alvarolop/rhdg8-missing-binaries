@@ -20,28 +20,148 @@ ifndef::env-github[]
 :icons: font
 endif::[]
 // End: Enable admonition icons
+// Refs
+:package-lsof: lsof-4.93.2-1.el8.x86_64.rpm
+:package-jmap: java-11-openjdk-devel-11.0.14.1.1-2.el8_5.x86_64.rpm
+:version-jmap: java-11-openjdk-11.0.14.1.1-2.el8_5.x86_64
+:package-netstat: net-tools-2.0-0.52.20160912git.el8.x86_64.rpm
 
 This repository contains basic mechanisms to execute binaries that are not present in the official container image.
-
 
 // Create the Table of contents here
 toc::[]
 
 
-== Introduction
+== Use cases
+
+We working at RH Consulting, I have faced many issues that required me to install some binaries inside a degraded container to debug what was going on. As the container is already running, it's too late to install anything. Therefore, the best approach is to copy the binaries inside the container.
+
+Examples of those binaries are:
+
+* `lsof`: It's used in many Unix-like systems to report a list of all open files and the processes that opened them. 
+* `jmap`: It prints memory-related statistics for a running VM or core file.
+* `netstat`. It displays network connections for TCP (both incoming and outgoing), routing tables, and several network interfaces and network protocol statistics.
+
+[WARNING]
+====
+* `lsof` is now included in the 8.x image, so it is no longer needed.
+* `jmap` binary is not working as expected because it is not in the JVM folder. We are currently looking for a workaround.
+====
+
+
+== Project init
+
+This project requires some folders to exist. Execute the following command to initizialize the project:
+
+[source, bash]
+----
+mkdir binaries
+mkdir packages
+----
 
 
 
-== Download the correct binaries
+== Downloading the RHEL packages 
+
+
+This process cannot be automated, as the Customer Portal requires authentication and proper entitlements to download the binaries. Hence, download your preferred package and place it in a folder named `packages`:
+
+* `lsof` is included as `lsof`. Download it https://access.redhat.com/downloads/content/lsof/4.93.2-1.el8/x86_64/fd431d51/package[here]. Select `{package-lsof}` for RHDG 8.3.
+* `jmap` is included in `openjdk-devel`. Download it https://access.redhat.com/downloads/content/java-11-openjdk-devel/11.0.14.1.1-2.el8_5/x86_64/fd431d51/package[here]. Select `{package-jmap}` for RHDG 8.3.
+* `netstat` is included in `net-tools`. Download it https://access.redhat.com/downloads/content/net-tools/2.0-0.52.20160912git.el8/x86_64/fd431d51/package[here]. Select version `{package-netstat}` for RHDG 8.3.
+
+
+== Extracting the binaries
+
+Now, we will extract your selected binary in order to copy it to the container. 
+
+.lsof
+[source, bash, subs="attributes"]
+----
+rpm2cpio packages/{package-lsof} | cpio -idv "./usr/bin/lsof"
+cp ./usr/bin/lsof binaries
+----
+
+
+.jmap
+[source, bash, subs="attributes"]
+----
+rpm2cpio packages/{package-jmap} | cpio -idv "./usr/lib/jvm/*/bin/jmap"
+cp ./usr/lib/jvm/*/bin/jmap binaries
+----
+
+
+.netstat
+[source, bash, subs="attributes"]
+----
+rpm2cpio packages/{package-netstat} | cpio -idv "./usr/bin/netstat"
+cp ./usr/bin/netstat binaries
+----
+
+
+[NOTE]
+====
+If you are exploring new packages, you can use this command to list the binaries inside the RPM:
+
+[source, bash]
+----
+rpm2cpio packages/<my-package> | cpio -t
+----
+
+Check this http://ftp.rpm.org/max-rpm/s1-rpm-miscellania-rpm2cpio.html[link] for more information.
+====
+
+
+== Copying the binaries
+
+There are several options to copy binaries to your running container image. The easiest way is using the command line tool `oc cp`. See the https://docs.openshift.com/container-platform/4.10/cli_reference/openshift_cli/developer-cli-commands.html#oc-cp[documentation] for more information. These would be the commands:
+
+[source, bash]
+----
+POD="rhdg-0"
+oc cp ./binaries/lsof $POD:/tmp/
+oc cp ./binaries/jmap $POD:/tmp/
+oc cp ./binaries/netstat $POD:/tmp/
+----
+
+
+[NOTE]
+====
+If you are experiencing issues with the copy command, maybe the `tar` binary is not available inside the container. In such case, read the binary content and copy it to a file inside the container:
+
+[source, bash]
+----
+cat ./binaries/lsof | oc exec -i $POD -- bash -c 'cat - > /tmp/lsof'
+----
+
+====
+
+
+== Executing the binary
+
+
+[source, bash]
+----
+export LD_LIBRARY_PATH=$(dirname $(find /usr/lib/jvm -name 'libjli*'))
+/tmp/jmap
+----
+
+Currently, this command is not working as the jmap has to be in the folder of the JVM. We are looking for possible workarounds.
 
 
 
 
-== Copy the binaries to the container
+
+
+
+== Obtaining the output
 
 
 
 
-== Copy the output of the execution
+
+
+
+
 
 
