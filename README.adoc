@@ -32,26 +32,32 @@ This repository contains basic mechanisms to execute binaries that are not prese
 toc::[]
 
 
+== Data Grid image
+
+This repository tries to help users that need to debug the official https://catalog.redhat.com/software/containers/datagrid/datagrid-8-rhel8/5d53e7b4d70cc5521d20ecea[Red Hat Data Grid image].
+
+
 == Use cases
 
-We working at RH Consulting, I have faced many issues that required me to install some binaries inside a degraded container to debug what was going on. As the container is already running, it's too late to install anything. Therefore, the best approach is to copy the binaries inside the container.
+Working with Red Hat Data Grid, I have faced many issues that required me to install some binaries inside a degraded container to debug what was going on. As the container is already running, it's too late to install anything. Therefore, the best approach is to copy the binaries inside the container.
 
 Examples of those binaries are:
 
-* `lsof`: It's used in many Unix-like systems to report a list of all open files and the processes that opened them. 
-* `jmap`: It prints memory-related statistics for a running VM or core file.
+* `lsof`: It's used in many Unix-like systems to report a list of all open file descriptors and the processes that opened them. 
+* `jmap` or `jcmd`: It prints memory-related statistics for a running VM or core file. It allows the creation of Java Heap Dumps.
+* `jstack`: It's used to create Java Thread Dumps.
 * `netstat`. It displays network connections for TCP (both incoming and outgoing), routing tables, and several network interfaces and network protocol statistics.
 
 [WARNING]
 ====
-* `lsof` is now included in the 8.x image, so it is no longer needed.
+* `lsof` is now included in the RHDG 8 image, so it is no longer needed.
 * `jmap` binary is not working as expected because it is not in the JVM folder. We are currently looking for a workaround.
 ====
 
 
 == Project init
 
-This project requires some folders to exist. Execute the following command to initizialize the project:
+This project requires some folders to exist. Execute the following command to initialize the project:
 
 [source, bash]
 ----
